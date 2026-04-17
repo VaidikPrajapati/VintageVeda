@@ -1,0 +1,72 @@
+# ========================================
+# Root-level files to exclude
+# ========================================
+Vintage Veda Logo.jpeg
+
+# ========================================
+# Python / Server
+# ========================================
+server/venv/
+server/.env
+server/__pycache__/
+server/app/__pycache__/
+server/app/**/__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+*.egg
+.eggs/
+
+# Empty/leftover directories
+server/prisma/
+
+# One-off scripts
+server/fix_indexes.py
+
+# ========================================
+# Node / Client
+# ========================================
+client/node_modules/
+client/dist/
+client/dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ========================================
+# Project Documentation / Scratch Files
+# (Not part of source code)
+# ========================================
+*.pdf
+extracted_text.txt
+implementation_plan.md
+implementation_plan 1.md
+
+# Mockup images used during design phase
+auth_page_mockup_*.png
+landing_page_mockup_*.png
+search_results_mockup_*.png
+
+# ========================================
+# IDE & OS
+# ========================================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ========================================
+# Environment & Secrets
+# ========================================
+.env
+.env.local
+.env.production

@@ -1,0 +1,321 @@
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Search, Sparkles, SunMedium, Heart, Bookmark, UserCircle, MessageCircle, ArrowRight, ThumbsUp, Github, Twitter, Mail, LogOut } from 'lucide-react';
+import AuthPage from './pages/AuthPage';
+import SearchPage from './pages/SearchPage';
+import SpicesPage from './pages/SpicesPage';
+import DoshaQuizPage from './pages/DoshaQuizPage';
+import { getFeaturedRemedies, getRemedyOfDay, getSeasonalTips, isLoggedIn, logout, getMe } from './api';
+
+/* ============================================================
+   Helpers
+   ============================================================ */
+function formatCategory(raw) {
+  if (!raw) return '';
+  return raw.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+/* ============================================================
+   Star Rating Component
+   ============================================================ */
+function StarRating({ rating = 4, max = 5 }) {
+  return (
+    <div className="star-rating">
+      {Array.from({ length: max }, (_, i) => (
+        <span key={i} className={`star ${i < rating ? '' : 'empty'}`}>{'\u2605'}</span>
+      ))}
+    </div>
+  );
+}
+
+/* ============================================================
+   Layout — Navbar + Footer + Vedabot FAB (hidden on /auth)
+   ============================================================ */
+function Layout() {
+  const location = useLocation();
+  const isAuthPage = location.pathname === '/auth';
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isLoggedIn()) {
+      getMe().then(u => setUser(u));
+    }
+  }, [location.pathname]);
+
+  const handleLogout = async () => {
+    await logout();
+    setUser(null);
+    navigate('/');
+  };
+
+  return (
+    <div className="layout" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      
+      {!isAuthPage && (
+        <header className="navbar">
+          <Link to="/" className="brand">
+            <img src="/logo.jpeg" alt="Vintage Veda Logo" className="brand-logo" />
+            <span className="brand-text">Vintage Veda</span>
+          </Link>
+          <nav className="nav-links">
+            <NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''}>Home</NavLink>
+            <NavLink to="/spices" className={({ isActive }) => isActive ? 'active' : ''}>Spices</NavLink>
+            <NavLink to="/dosha" className={({ isActive }) => isActive ? 'active' : ''}>Dosha Quiz</NavLink>
+          </nav>
+          <div className="nav-actions">
+            <button className="dark-mode-btn" aria-label="Toggle dark mode">{'\uD83C\uDF19'}</button>
+            {user ? (
+              <div className="user-nav-group">
+                <span className="user-greeting">Hi, {user.full_name.split(' ')[0]}</span>
+                <button className="auth-btn" onClick={handleLogout} title="Logout">
+                  <LogOut size={18} />
+                  <span>Logout</span>
+                </button>
+              </div>
+            ) : (
+              <Link to="/auth" className="auth-btn">
+                <UserCircle size={18} />
+                <span>Sign In</span>
+              </Link>
+            )}
+          </div>
+        </header>
+      )}
+
+      <main className="main-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/spices" element={<SpicesPage />} />
+          <Route path="/dosha" element={<DoshaQuizPage />} />
+        </Routes>
+      </main>
+
+      {!isAuthPage && (
+        <>
+          <footer className="site-footer">
+            <div className="footer-inner">
+              <div className="footer-brand">
+                <Link to="/" className="brand" style={{ marginBottom: '0.5rem' }}>
+                  <img src="/logo.jpeg" alt="Vintage Veda" className="brand-logo" />
+                  <span className="brand-text" style={{ color: 'white' }}>Vintage Veda</span>
+                </Link>
+                <p>Discover and share traditional Ayurvedic remedies validated by community wisdom. Heal naturally, live traditionally.</p>
+              </div>
+              <div className="footer-col">
+                <h4>Explore</h4>
+                <ul>
+                  <li><Link to="/">Home</Link></li>
+                  <li><Link to="/spices">Spices Encyclopedia</Link></li>
+                  <li><Link to="/dosha">Dosha Quiz</Link></li>
+                  <li><Link to="/search?type=disease&q=">Browse Remedies</Link></li>
+                </ul>
+              </div>
+              <div className="footer-col">
+                <h4>Support</h4>
+                <ul>
+                  <li><a href="#">How It Works</a></li>
+                  <li><a href="#">Terms & Conditions</a></li>
+                  <li><a href="#">Privacy Policy</a></li>
+                  <li><a href="#">Contact Us</a></li>
+                </ul>
+              </div>
+            </div>
+            <div className="footer-bottom">
+              <span>{'\u00A9'} 2026 Vintage Veda. Built with {'\uD83C\uDF3F'} for holistic wellness.</span>
+              <div className="footer-social">
+                <a href="#" aria-label="GitHub"><Github size={18} /></a>
+                <a href="#" aria-label="Twitter"><Twitter size={18} /></a>
+                <a href="#" aria-label="Email"><Mail size={18} /></a>
+              </div>
+            </div>
+          </footer>
+
+          <button className="vedabot-fab" aria-label="Open VedaBot AI Assistant">
+            <MessageCircle size={26} />
+          </button>
+          <span className="vedabot-label">VedaBot</span>
+        </>
+      )}
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Layout />
+    </BrowserRouter>
+  );
+}
+
+/* ============================================================
+   LANDING PAGE — Fetches real data from API
+   ============================================================ */
+function LandingPage() {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('disease');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [featuredRemedies, setFeaturedRemedies] = useState([]);
+  const [rotd, setRotd] = useState(null);
+  const [seasonal, setSeasonal] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [featured, remedyOfDay, seasonalData] = await Promise.all([
+          getFeaturedRemedies(),
+          getRemedyOfDay(),
+          getSeasonalTips(),
+        ]);
+        setFeaturedRemedies(featured);
+        setRotd(remedyOfDay);
+        setSeasonal(seasonalData);
+      } catch (e) {
+        console.error('Failed to load landing data:', e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery) {
+      navigate(`/search?type=${activeTab}&q=${encodeURIComponent(searchQuery)}`);
+    }
+  };
+
+  const formatUpvotes = (n) => {
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
+    return n.toString();
+  };
+
+  return (
+    <div className="landing-page">
+      
+      {/* --- Hero Section --- */}
+      <section className="hero-section">
+        <div className="hero-bg-overlay"></div>
+        <div className="hero-content">
+          <h1>Heal Naturally.<br/>Live Traditionally.</h1>
+          <p>Discover time-tested Ayurvedic remedies personalized for your well-being.</p>
+        </div>
+
+        <div className="search-widget-container">
+          <div className="search-tabs">
+            <button 
+              className={`search-tab ${activeTab === 'disease' ? 'active' : ''}`}
+              onClick={() => setActiveTab('disease')}
+            >
+              Search by Disease
+            </button>
+            <button 
+              className={`search-tab ${activeTab === 'ingredient' ? 'active' : ''}`}
+              onClick={() => setActiveTab('ingredient')}
+            >
+              Search by Ingredient
+            </button>
+          </div>
+          
+          <form className="search-box-inner" onSubmit={handleSearch}>
+            <Search color="#A59B93" size={20} />
+            <input 
+              type="text" 
+              placeholder={activeTab === 'disease' ? "Search for a disease (e.g., Migraine)..." : "Search for an ingredient (e.g., Turmeric)..."}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button type="submit" className="search-box-btn">
+              <Search size={16} style={{ marginRight: '0.4rem' }} /> Search
+            </button>
+          </form>
+        </div>
+      </section>
+
+      {/* --- Seasonal Wellness Banner --- */}
+      <section className="seasonal-banner">
+        <div className="seasonal-text">
+          <h3>Seasonal Wellness</h3>
+          <p>
+            {seasonal && seasonal.tips
+              ? seasonal.tips[0]
+              : 'Tips for summer wellness \u2014 stay hydrated, eat cooling foods, and minimize exposure to midday sun for balanced Pitta dosha.'}
+          </p>
+        </div>
+        <Link to="/search?type=disease&q=summer" className="seasonal-cta">
+          Learn more <ArrowRight size={18} />
+        </Link>
+      </section>
+
+      {/* --- Remedy of the Day --- */}
+      <section className="rotd-section">
+        <div className="rotd-card">
+          <div className="rotd-content">
+            <div className="rotd-badge">
+              <Sparkles size={14} /> REMEDY OF THE DAY
+            </div>
+            <h2 className="rotd-title">{rotd ? rotd.title : 'Tulsi & Ginger Kadha'}</h2>
+            <p className="rotd-desc">
+              {rotd ? rotd.short_description : 'Featured Ayurvedic immunity-boosting decoction for combating seasonal changes.'}
+            </p>
+            <div className="tags-row">
+              <span className="tag outline">{rotd ? rotd.disease_name : 'Cough & Cold'}</span>
+              <span className="tag filled">{rotd ? formatCategory(rotd.category) : 'Respiratory'}</span>
+            </div>
+            <Link to={rotd ? `/search?type=disease&q=${encodeURIComponent(rotd.disease_name)}` : '/search?type=disease&q=cough'} className="rotd-cta">
+              Learn more <ArrowRight size={16} />
+            </Link>
+          </div>
+          <img 
+            src="/rotd-herbs.png" 
+            alt="Ayurvedic herbs and spices" 
+            className="rotd-image"
+          />
+        </div>
+      </section>
+
+      {/* --- Featured Remedies — 3 Column Grid --- */}
+      <section className="featured-section">
+        <div className="featured-header">
+          <h3>Featured Remedies</h3>
+          <Link to="/search?type=disease&q=" className="view-all">View All {'\u2192'}</Link>
+        </div>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: '#666' }}>Loading remedies...</div>
+        ) : (
+          <div className="cards-grid">
+            {featuredRemedies.map((remedy, idx) => (
+              <div key={remedy.id || idx} className={`remedy-card stagger-${idx + 1}`} style={{ animation: 'fadeUp 0.5s ease-out both' }}>
+                {remedy.has_allergens && (
+                  <div className="allergy-overlay">
+                    Allergens: {remedy.allergens_list.join(', ')}
+                  </div>
+                )}
+                <div className="remedy-card-header">
+                  <span className="remedy-card-title">{remedy.title}</span>
+                  <Bookmark size={18} className="bookmark-icon" />
+                </div>
+                <div className="remedy-tags">
+                  <span className="remedy-tag disease">{remedy.disease_name}</span>
+                  <span className="remedy-tag category">{formatCategory(remedy.category)}</span>
+                </div>
+                <div className="remedy-card-footer">
+                  <StarRating rating={4} />
+                  <button className="upvote-btn">
+                    <ThumbsUp size={14} /> {formatUpvotes(remedy.upvotes)}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+    </div>
+  );
+}
