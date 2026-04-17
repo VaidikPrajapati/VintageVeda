@@ -5,6 +5,8 @@ import AuthPage from './pages/AuthPage';
 import SearchPage from './pages/SearchPage';
 import SpicesPage from './pages/SpicesPage';
 import DoshaQuizPage from './pages/DoshaQuizPage';
+import ProfilePage from './pages/ProfilePage';
+import SupportPage from './pages/SupportPage';
 import { getFeaturedRemedies, getRemedyOfDay, getSeasonalTips, isLoggedIn, logout, getMe } from './api';
 
 /* ============================================================
@@ -68,6 +70,10 @@ function Layout() {
             {user ? (
               <div className="user-nav-group">
                 <span className="user-greeting">Hi, {user.full_name.split(' ')[0]}</span>
+                <Link to="/profile" className="auth-btn" title="My Profile">
+                  <UserCircle size={18} />
+                  <span>Profile</span>
+                </Link>
                 <button className="auth-btn" onClick={handleLogout} title="Logout">
                   <LogOut size={18} />
                   <span>Logout</span>
@@ -90,6 +96,8 @@ function Layout() {
           <Route path="/search" element={<SearchPage />} />
           <Route path="/spices" element={<SpicesPage />} />
           <Route path="/dosha" element={<DoshaQuizPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/support" element={<SupportPage />} />
         </Routes>
       </main>
 
@@ -116,10 +124,10 @@ function Layout() {
               <div className="footer-col">
                 <h4>Support</h4>
                 <ul>
-                  <li><a href="#">How It Works</a></li>
-                  <li><a href="#">Terms & Conditions</a></li>
-                  <li><a href="#">Privacy Policy</a></li>
-                  <li><a href="#">Contact Us</a></li>
+                  <li><Link to="/support">How It Works</Link></li>
+                  <li><Link to="/support">Terms & Conditions</Link></li>
+                  <li><Link to="/support">Privacy Policy</Link></li>
+                  <li><Link to="/support">Contact Us</Link></li>
                 </ul>
               </div>
             </div>

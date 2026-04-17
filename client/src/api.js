@@ -108,6 +108,31 @@ export function isLoggedIn() {
   return !!getToken();
 }
 
+export async function completeProfile(profileData) {
+  const res = await apiFetch("/auth/complete-profile", {
+    method: "POST",
+    body: JSON.stringify(profileData),
+  });
+  return { ok: res.ok, data: await res.json() };
+}
+
+export async function updateProfile(profileData) {
+  const res = await apiFetch("/auth/update-profile", {
+    method: "PUT",
+    body: JSON.stringify(profileData),
+  });
+  return { ok: res.ok, data: await res.json() };
+}
+
+export async function submitContact(contactData) {
+  const res = await fetch(`${API_BASE}/contact/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(contactData),
+  });
+  return { ok: res.ok, data: await res.json() };
+}
+
 // ═══════════════════════════════════════
 //  REMEDIES ENDPOINTS
 // ═══════════════════════════════════════
