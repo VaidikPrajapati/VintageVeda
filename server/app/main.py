@@ -40,6 +40,7 @@ origins = [
     settings.frontend_url,
     "https://vintage-veda.vercel.app",
     "http://localhost:5173",
+    "http://localhost:5174",
     "http://localhost:3000",
 ]
 # Add any Vercel/Netlify production domains
@@ -49,7 +50,7 @@ if settings.frontend_url not in origins:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_origin_regex=r"(https://.*\.vercel\.app|http://localhost:\d+)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

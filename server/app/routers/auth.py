@@ -14,6 +14,7 @@ from app.services.auth_service import (
 )
 from app.middleware.auth_middleware import get_current_user
 from app.models.user import User
+from app.config import settings
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -157,15 +158,27 @@ async def forgot_password(req: ForgotPasswordRequest):
     """Send password reset email with token."""
     user = await get_user_by_email(req.email)
     if not user:
-        # Don't reveal whether email exists
+        # Don't reveal whether email exists (security best practice)
         return {"message": "If that email exists, a reset link has been sent."}
 
+    # Generate token with 1-hour expiry
+    from datetime import timedelta
     user.reset_token = generate_verification_token()
-    user.reset_token_expiry = datetime.utcnow()
+    user.reset_token_expiry = datetime.utcnow() + timedelta(hours=1)
     await user.save()
 
-    # TODO: Send reset email via email_service
-    # await send_reset_email(user.email, user.reset_token)
+    # Send reset email
+    try:
+        from app.services.email_service import send_password_reset_email
+        await send_password_reset_email(user.email, user.full_name, user.reset_token)
+    except Exception as e:
+        print(f"Email send failed: {e}")
+        import traceback
+        traceback.print_exc()
+        # Still return success to not reveal email existence
+        # But also provide the token in debug mode for testing
+        if settings.debug:
+            return {"message": "If that email exists, a reset link has been sent.", "debug_token": user.reset_token}
 
     return {"message": "If that email exists, a reset link has been sent."}
 
@@ -177,11 +190,29 @@ async def reset_password(req: ResetPasswordRequest):
     if not user:
         raise HTTPException(status_code=400, detail="Invalid or expired reset token")
 
+    # Check token expiry
+    if user.reset_token_expiry and user.reset_token_expiry < datetime.utcnow():
+        user.reset_token = None
+        user.reset_token_expiry = None
+        await user.save()
+        raise HTTPException(status_code=400, detail="Reset token has expired. Please request a new one.")
+
+    # Validate new password
+    if len(req.new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters.")
+
     user.password_hash = hash_password(req.new_password)
     user.reset_token = None
     user.reset_token_expiry = None
     user.updated_at = datetime.utcnow()
     await user.save()
+
+    # Send confirmation email
+    try:
+        from app.services.email_service import send_password_reset_confirmation_email
+        await send_password_reset_confirmation_email(user.email, user.full_name)
+    except Exception as e:
+        print(f"Confirmation email failed: {e}")
 
     return {"message": "Password reset successful. Please login with your new password."}
 

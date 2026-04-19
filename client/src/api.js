@@ -244,3 +244,25 @@ export async function sendChatMessage(message, history = []) {
   if (!res.ok) return null;
   return res.json();
 }
+
+// ═══════════════════════════════════════
+//  PASSWORD RESET
+// ═══════════════════════════════════════
+
+export async function forgotPassword(email) {
+  const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  return { ok: res.ok, data: await res.json() };
+}
+
+export async function resetPassword(token, newPassword) {
+  const res = await fetch(`${API_BASE}/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, new_password: newPassword }),
+  });
+  return { ok: res.ok, data: await res.json() };
+}

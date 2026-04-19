@@ -7,6 +7,7 @@ import SpicesPage from './pages/SpicesPage';
 import DoshaQuizPage from './pages/DoshaQuizPage';
 import ProfilePage from './pages/ProfilePage';
 import SupportPage from './pages/SupportPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import { getFeaturedRemedies, getRemedyOfDay, getSeasonalTips, isLoggedIn, logout, getMe, sendChatMessage } from './api';
 
 /* ============================================================
@@ -35,7 +36,7 @@ function StarRating({ rating = 4, max = 5 }) {
    ============================================================ */
 function Layout() {
   const location = useLocation();
-  const isAuthPage = location.pathname === '/auth';
+  const isAuthPage = location.pathname === '/auth' || location.pathname.startsWith('/reset-password');
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
@@ -93,6 +94,7 @@ function Layout() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/auth" element={<AuthPage />} />
+          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/spices" element={<SpicesPage />} />
           <Route path="/dosha" element={<DoshaQuizPage />} />

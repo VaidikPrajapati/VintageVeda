@@ -16,18 +16,6 @@ class ChatMessage(BaseModel):
     history: List[dict] = []
 
 
-class VedaBotResponse(BaseModel):
-    disease: str
-    dosha_imbalance: str
-    explanation: str
-    confidence: str
-    is_life_threatening: bool
-    follow_up_question: Optional[str]
-    suggested_remedy_keywords: List[str]
-    remedies: List[dict] = []
-    disclaimer: str
-
-
 VEDABOT_SYSTEM_PROMPT = """
 You are VedaBot, an Ayurvedic wellness assistant for Vintage Veda.
 
@@ -80,19 +68,23 @@ async def chat_message(req: ChatMessage, user: User = Depends(get_current_user))
             ai_response = await _call_gemini(req.message, req.history)
         except Exception as e:
             print(f"Gemini failed: {e}")
+            import traceback
+            traceback.print_exc()
 
     if ai_response is None and settings.openai_api_key:
         try:
             ai_response = await _call_openai(req.message, req.history)
         except Exception as e:
             print(f"OpenAI fallback failed: {e}")
+            import traceback
+            traceback.print_exc()
 
     if ai_response is None:
         # Fallback: return a safe default
         ai_response = {
             "disease": "Unable to assess",
             "doshaImbalance": "Please try again later",
-            "explanation": "Our AI service is temporarily unavailable.",
+            "explanation": "Our AI service is temporarily unavailable. Please try again in a moment.",
             "confidence": "low",
             "isLifeThreatening": False,
             "followUpQuestion": None,
@@ -101,12 +93,15 @@ async def chat_message(req: ChatMessage, user: User = Depends(get_current_user))
 
     # Fetch matching remedies from database
     remedies = []
-    for keyword in ai_response.get("suggestedRemedyKeywords", []):
-        results = await Remedy.find(
-            {"$text": {"$search": keyword}, "status": "approved"}
-        ).limit(3).to_list()
-        for r in results:
-            remedies.append({"id": str(r.id), "title": r.title, "disease": r.disease_name})
+    try:
+        for keyword in ai_response.get("suggestedRemedyKeywords", []):
+            results = await Remedy.find(
+                {"$text": {"$search": keyword}, "status": "approved"}
+            ).limit(3).to_list()
+            for r in results:
+                remedies.append({"id": str(r.id), "title": r.title, "disease": r.disease_name})
+    except Exception as e:
+        print(f"Remedy search failed: {e}")
 
     return {
         **ai_response,
@@ -116,27 +111,32 @@ async def chat_message(req: ChatMessage, user: User = Depends(get_current_user))
 
 
 async def _call_gemini(message: str, history: list) -> dict:
-    """Call Google Gemini API."""
-    import google.generativeai as genai
+    """Call Google Gemini API using google-genai SDK."""
     import json
+    import asyncio
+    from google import genai
 
-    genai.configure(api_key=settings.gemini_api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    client = genai.Client(api_key=settings.gemini_api_key)
 
-    chat = model.start_chat(history=[])
-    response = chat.send_message(
-        f"{VEDABOT_SYSTEM_PROMPT}\n\nUser says: {message}",
-    )
+    def _generate():
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=f"{VEDABOT_SYSTEM_PROMPT}\n\nUser says: {message}",
+        )
+        return response.text
+
+    text = await asyncio.to_thread(_generate)
+    print(f"[VedaBot] Gemini raw response length: {len(text)}")
 
     # Parse JSON from response
-    text = response.text
-    # Try to extract JSON from response
     if "```json" in text:
         text = text.split("```json")[1].split("```")[0]
     elif "```" in text:
         text = text.split("```")[1].split("```")[0]
 
-    return json.loads(text.strip())
+    result = json.loads(text.strip())
+    print(f"[VedaBot] Parsed response: {result.get('disease', 'unknown')}")
+    return result
 
 
 async def _call_openai(message: str, history: list) -> dict:

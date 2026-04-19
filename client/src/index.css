@@ -1692,6 +1692,47 @@ input:focus, button:focus-visible, select:focus {
   color: var(--color-primary-dark);
 }
 
+/* ── Forgot Password Link ── */
+.auth-forgot-link {
+  color: var(--color-primary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.auth-forgot-link:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+/* ── Reset Success Page ── */
+.auth-reset-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 0;
+}
+
+.auth-success-icon {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2D5016 0%, #4A8C1C 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  animation: successPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  box-shadow: 0 8px 32px rgba(45, 80, 22, 0.3);
+}
+
+@keyframes successPop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 /* =========================================================================
    FOOTER
    ========================================================================= */
