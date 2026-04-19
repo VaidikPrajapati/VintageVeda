@@ -38,6 +38,7 @@ app = FastAPI(
 # ── CORS Middleware ──
 origins = [
     settings.frontend_url,
+    "https://vintage-veda.vercel.app",
     "http://localhost:5173",
     "http://localhost:3000",
 ]
