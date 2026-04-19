@@ -2,8 +2,12 @@ services:
   - type: web
     name: vintage-veda-api
     runtime: python
+    region: oregon
+    plan: free
+    rootDir: server
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
     envVars:
       - key: MONGODB_URI
         sync: false
@@ -11,6 +15,12 @@ services:
         value: vintage_veda
       - key: JWT_SECRET_KEY
         sync: false
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: JWT_ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "15"
+      - key: JWT_REFRESH_TOKEN_EXPIRE_DAYS
+        value: "7"
       - key: GEMINI_API_KEY
         sync: false
       - key: OPENAI_API_KEY
@@ -23,3 +33,5 @@ services:
         sync: false
       - key: PYTHON_VERSION
         value: "3.11.0"
+      - key: DEBUG
+        value: "false"

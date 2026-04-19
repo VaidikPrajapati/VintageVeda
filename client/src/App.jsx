@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Sparkles, SunMedium, Heart, Bookmark, UserCircle, MessageCircle, ArrowRight, ThumbsUp, Github, Twitter, Mail, LogOut } from 'lucide-react';
+import { Search, Sparkles, SunMedium, Heart, Bookmark, UserCircle, MessageCircle, ArrowRight, ThumbsUp, Github, Twitter, Mail, LogOut, X, Send, Loader2, Bot, User } from 'lucide-react';
 import AuthPage from './pages/AuthPage';
 import SearchPage from './pages/SearchPage';
 import SpicesPage from './pages/SpicesPage';
 import DoshaQuizPage from './pages/DoshaQuizPage';
 import ProfilePage from './pages/ProfilePage';
 import SupportPage from './pages/SupportPage';
-import { getFeaturedRemedies, getRemedyOfDay, getSeasonalTips, isLoggedIn, logout, getMe } from './api';
+import { getFeaturedRemedies, getRemedyOfDay, getSeasonalTips, isLoggedIn, logout, getMe, sendChatMessage } from './api';
 
 /* ============================================================
    Helpers
@@ -141,10 +141,7 @@ function Layout() {
             </div>
           </footer>
 
-          <button className="vedabot-fab" aria-label="Open VedaBot AI Assistant">
-            <MessageCircle size={26} />
-          </button>
-          <span className="vedabot-label">VedaBot</span>
+          <VedaBotChat />
         </>
       )}
     </div>
@@ -156,6 +153,180 @@ export default function App() {
     <BrowserRouter>
       <Layout />
     </BrowserRouter>
+  );
+}
+
+/* ============================================================
+   VEDABOT CHAT PANEL — Floating AI Assistant
+   ============================================================ */
+function VedaBotChat() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { role: 'bot', text: "🙏 Namaste! I'm VedaBot, your Ayurvedic wellness assistant.\n\nDescribe your symptoms and I'll suggest traditional Ayurvedic remedies. I can understand Hindi-English mix too!" }
+  ]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isTyping]);
+
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isOpen]);
+
+  const handleSend = async () => {
+    const trimmed = input.trim();
+    if (!trimmed || isTyping) return;
+
+    const userMsg = { role: 'user', text: trimmed };
+    setMessages(prev => [...prev, userMsg]);
+    setInput('');
+    setIsTyping(true);
+
+    try {
+      const history = messages.map(m => ({ role: m.role === 'bot' ? 'assistant' : 'user', content: m.text }));
+      const response = await sendChatMessage(trimmed, history);
+
+      if (response) {
+        let botText = '';
+
+        if (response.followUpQuestion || response.follow_up_question) {
+          botText = response.followUpQuestion || response.follow_up_question;
+        } else {
+          const disease = response.disease || 'Unknown';
+          const explanation = response.explanation || '';
+          const dosha = response.doshaImbalance || response.dosha_imbalance || '';
+          const confidence = response.confidence || 'low';
+          const disclaimer = response.disclaimer || '';
+
+          botText = `🌿 **${disease}**\n\n${explanation}`;
+          if (dosha) botText += `\n\n🧘 **Dosha:** ${dosha}`;
+          botText += `\n📊 **Confidence:** ${confidence}`;
+
+          if (response.remedies && response.remedies.length > 0) {
+            botText += '\n\n💊 **Suggested Remedies:**';
+            response.remedies.forEach(r => {
+              botText += `\n• ${r.title} (for ${r.disease})`;
+            });
+          }
+
+          if (disclaimer) botText += `\n\n⚠️ _${disclaimer}_`;
+        }
+
+        setMessages(prev => [...prev, { role: 'bot', text: botText }]);
+      } else {
+        setMessages(prev => [...prev, { role: 'bot', text: '🙏 I could not process that right now. Please make sure you are logged in and try again.' }]);
+      }
+    } catch (err) {
+      console.error('VedaBot error:', err);
+      setMessages(prev => [...prev, { role: 'bot', text: '❌ Something went wrong. Please try again in a moment.' }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const formatBotText = (text) => {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/_(.*?)_/g, '<em>$1</em>')
+      .replace(/\n/g, '<br/>');
+  };
+
+  return (
+    <>
+      {/* Chat Panel */}
+      <div className={`vedabot-panel ${isOpen ? 'open' : ''}`}>
+        {/* Header */}
+        <div className="vedabot-panel-header">
+          <div className="vedabot-header-left">
+            <div className="vedabot-avatar">
+              <Bot size={20} />
+            </div>
+            <div>
+              <h4>VedaBot AI</h4>
+              <span className="vedabot-status">Ayurvedic Wellness Assistant</span>
+            </div>
+          </div>
+          <button className="vedabot-close-btn" onClick={() => setIsOpen(false)} aria-label="Close VedaBot">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Messages */}
+        <div className="vedabot-messages">
+          {messages.map((msg, idx) => (
+            <div key={idx} className={`vedabot-msg ${msg.role}`}>
+              <div className="vedabot-msg-icon">
+                {msg.role === 'bot' ? <Bot size={16} /> : <User size={16} />}
+              </div>
+              <div
+                className="vedabot-msg-bubble"
+                dangerouslySetInnerHTML={{ __html: msg.role === 'bot' ? formatBotText(msg.text) : msg.text }}
+              />
+            </div>
+          ))}
+          {isTyping && (
+            <div className="vedabot-msg bot">
+              <div className="vedabot-msg-icon"><Bot size={16} /></div>
+              <div className="vedabot-msg-bubble vedabot-typing">
+                <span className="typing-dot"></span>
+                <span className="typing-dot"></span>
+                <span className="typing-dot"></span>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input */}
+        <div className="vedabot-input-area">
+          <input
+            ref={inputRef}
+            type="text"
+            className="vedabot-input"
+            placeholder="Describe your symptoms..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={isTyping}
+          />
+          <button
+            className="vedabot-send-btn"
+            onClick={handleSend}
+            disabled={!input.trim() || isTyping}
+            aria-label="Send message"
+          >
+            {isTyping ? <Loader2 size={18} className="spin-icon" /> : <Send size={18} />}
+          </button>
+        </div>
+      </div>
+
+      {/* FAB */}
+      <button
+        className={`vedabot-fab ${isOpen ? 'active' : ''}`}
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label={isOpen ? 'Close VedaBot' : 'Open VedaBot AI Assistant'}
+      >
+        {isOpen ? <X size={24} /> : <MessageCircle size={26} />}
+      </button>
+      {!isOpen && <span className="vedabot-label">VedaBot</span>}
+    </>
   );
 }
 

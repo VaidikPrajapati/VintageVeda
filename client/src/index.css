@@ -1773,7 +1773,7 @@ input:focus, button:focus-visible, select:focus {
 }
 
 /* =========================================================================
-   VEDABOT FAB
+   VEDABOT — CHAT PANEL + FAB
    ========================================================================= */
 .vedabot-fab {
   position: fixed;
@@ -1789,9 +1789,9 @@ input:focus, button:focus-visible, select:focus {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 1000;
+  z-index: 1100;
   animation: pulse-ring 2.5s infinite ease-in-out;
-  transition: transform var(--transition-fast);
+  transition: transform var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
   box-shadow: 0 4px 20px rgba(45, 80, 22, 0.4);
 }
 
@@ -1799,6 +1799,12 @@ input:focus, button:focus-visible, select:focus {
   transform: scale(1.1);
   animation: none;
   box-shadow: 0 8px 24px rgba(45, 80, 22, 0.5);
+}
+
+.vedabot-fab.active {
+  background: var(--color-primary-dark);
+  animation: none;
+  box-shadow: 0 4px 16px rgba(15, 41, 20, 0.4);
 }
 
 .vedabot-label {
@@ -1815,10 +1821,295 @@ input:focus, button:focus-visible, select:focus {
   pointer-events: none;
   opacity: 0;
   transition: opacity var(--transition-fast);
+  z-index: 1100;
 }
 
 .vedabot-fab:hover + .vedabot-label {
   opacity: 1;
+}
+
+/* ── Chat Panel ── */
+.vedabot-panel {
+  position: fixed;
+  bottom: 6rem;
+  right: 2rem;
+  width: 400px;
+  max-height: 560px;
+  background: var(--color-card-bg);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  z-index: 1050;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  /* Closed state */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(20px) scale(0.95);
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0.3s ease;
+}
+
+.vedabot-panel.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+/* ── Panel Header ── */
+.vedabot-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
+}
+
+.vedabot-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.vedabot-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.vedabot-panel-header h4 {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.vedabot-status {
+  font-size: 0.7rem;
+  opacity: 0.8;
+  letter-spacing: 0.3px;
+}
+
+.vedabot-close-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.vedabot-close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ── Messages Area ── */
+.vedabot-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 300px;
+  max-height: 360px;
+  background: #faf8f5;
+}
+
+.vedabot-messages::-webkit-scrollbar {
+  width: 5px;
+}
+
+.vedabot-messages::-webkit-scrollbar-thumb {
+  background: rgba(45, 80, 22, 0.2);
+  border-radius: 10px;
+}
+
+/* ── Message Rows ── */
+.vedabot-msg {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  animation: fadeUp 0.3s ease-out both;
+}
+
+.vedabot-msg.user {
+  flex-direction: row-reverse;
+}
+
+.vedabot-msg-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.vedabot-msg.bot .vedabot-msg-icon {
+  background: var(--color-primary);
+  color: white;
+}
+
+.vedabot-msg.user .vedabot-msg-icon {
+  background: var(--color-accent);
+  color: white;
+}
+
+/* ── Bubbles ── */
+.vedabot-msg-bubble {
+  padding: 0.75rem 1rem;
+  border-radius: 16px;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  max-width: 80%;
+  word-break: break-word;
+}
+
+.vedabot-msg.bot .vedabot-msg-bubble {
+  background: white;
+  color: var(--color-secondary);
+  border: 1px solid #ede7df;
+  border-top-left-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.vedabot-msg.user .vedabot-msg-bubble {
+  background: var(--color-primary);
+  color: white;
+  border-top-right-radius: 4px;
+}
+
+.vedabot-msg-bubble strong {
+  font-weight: 700;
+}
+
+.vedabot-msg-bubble em {
+  font-style: italic;
+  opacity: 0.85;
+}
+
+/* ── Typing Indicator ── */
+.vedabot-typing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.85rem 1.25rem;
+  min-width: 60px;
+}
+
+.typing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  opacity: 0.4;
+  animation: typingBounce 1.4s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingBounce {
+  0%, 80%, 100% { transform: scale(0.7); opacity: 0.3; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* ── Input Area ── */
+.vedabot-input-area {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #ede7df;
+  background: white;
+}
+
+.vedabot-input {
+  flex: 1;
+  border: 1px solid #e0d8d0;
+  border-radius: 24px;
+  padding: 0.65rem 1rem;
+  font-size: 0.88rem;
+  font-family: var(--font-body);
+  outline: none;
+  background: #faf8f5;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.vedabot-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(45, 80, 22, 0.08);
+}
+
+.vedabot-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.vedabot-input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.vedabot-send-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.vedabot-send-btn:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+  transform: scale(1.05);
+}
+
+.vedabot-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Mobile Responsive ── */
+@media (max-width: 480px) {
+  .vedabot-panel {
+    width: calc(100vw - 1.5rem);
+    right: 0.75rem;
+    bottom: 5.5rem;
+    max-height: 70vh;
+    border-radius: 16px;
+  }
+
+  .vedabot-fab {
+    bottom: 1.25rem;
+    right: 1.25rem;
+    width: 54px;
+    height: 54px;
+  }
+
+  .vedabot-label {
+    display: none;
+  }
 }
 
 /* =========================================================================
