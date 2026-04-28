@@ -129,6 +129,7 @@ The app uses a custom design system with:
 A personal project built with passion for Ayurvedic wellness.
 
 - **Vaidik Prajapati** — [GitHub](https://github.com/VaidikPrajapati)
+- **Aryan Suther** — [GitHub](https://github.com/suthararyan24)
 - **Aditya Vyas** — [GitHub](https://github.com/AdityaVyas-15)
 
 ## 📄 License
